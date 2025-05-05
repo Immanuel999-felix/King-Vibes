@@ -1,0 +1,3 @@
+ARTIST_EMAIL="artist@example.com"
+   ARTIST_PASSWORD="securePassword123"
+   JWT_SECRET="yourSecretKeyHere"
