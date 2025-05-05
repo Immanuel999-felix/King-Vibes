@@ -1,3 +1,4 @@
+/*
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -263,6 +264,145 @@
 
         // Initial Load
         loadNewsFeed();
+    </script>
+</body>
+</html>
+*/
+
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Artist Platform</title>
+    <style>
+        :root {
+            --primary: #1DB954;
+            --dark: #191414;
+            --light: #FFFFFF;
+        }
+
+        .hidden { display: none; }
+        body { background: var(--dark); color: var(--light); font-family: Arial; }
+        .navbar { padding: 1rem; background: #000; display: flex; justify-content: space-between; }
+        .content { padding: 2rem; }
+        .post { background: rgba(255,255,255,0.1); padding: 1rem; margin: 1rem 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🎤 Artist Platform</h1>
+        <div id="authSection">
+            <button onclick="showAuth('login')">Login</button>
+            <button onclick="showAuth('register')">Register</button>
+        </div>
+    </nav>
+
+    <div class="content">
+        <!-- Login Form -->
+        <div id="loginForm" class="hidden">
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="handleLogin()">Enter</button>
+        </div>
+
+        <!-- Main Content (Visible After Login) -->
+        <div id="mainContent" class="hidden">
+            <!-- Artist Dashboard -->
+            <div id="artistDashboard" class="hidden">
+                <h2>Welcome Artist! 🎸</h2>
+                <input type="text" id="postTitle" placeholder="Post Title">
+                <textarea id="postContent" placeholder="News Update"></textarea>
+                <button onclick="createPost()">Share Update</button>
+            </div>
+
+            <!-- News Feed -->
+            <div id="newsFeed"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let currentUser = null;
+
+        // Show login form
+        function showAuth(formType) {
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        // Handle login
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    currentUser = data;
+                    
+                    // Show main content
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    
+                    // Show artist dashboard if artist
+                    if (data.isArtist) {
+                        document.getElementById('artistDashboard').classList.remove('hidden');
+                    }
+                    
+                    loadNewsFeed();
+                }
+            } catch (error) {
+                alert('Login failed!');
+            }
+        }
+
+        // Load news feed
+        async function loadNewsFeed() {
+            try {
+                const response = await fetch(`${API_URL}/posts`);
+                const posts = await response.json();
+                
+                document.getElementById('newsFeed').innerHTML = posts.map(post => `
+                    <div class="post">
+                        <h3>${post.title}</h3>
+                        <p>${post.content}</p>
+                        ${post.track ? `<audio controls src="${post.track}"></audio>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading feed:', error);
+            }
+        }
+
+        // Check if logged in on page load
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch(`${API_URL}/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    currentUser = await response.json();
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    if (currentUser.isArtist) {
+                        document.getElementById('artistDashboard').classList.remove('hidden');
+                    }
+                    loadNewsFeed();
+                } catch {
+                    localStorage.removeItem('token');
+                }
+            }
+        }
+
+        // Initial check
+        checkAuth();
     </script>
 </body>
 </html>
